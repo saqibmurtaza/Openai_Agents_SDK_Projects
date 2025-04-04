@@ -1,0 +1,17 @@
+[project]
+name = "book-writer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "saqibmurtaza", email = "saqibmurtazakhan@gmai.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+book-writer = "book_writer:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
