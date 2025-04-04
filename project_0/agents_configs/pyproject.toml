@@ -1,0 +1,22 @@
+[project]
+name = "project_0"
+version = "0.1.0"
+description = "Project 0: OpenAI SDK-based agent configurations"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-generativeai>=0.8.4",
+    "openai-agents>=0.0.7",
+]
+
+[project.scripts]
+run-agent = "project_0.agent_level:main"
+run-global = "project_0.global_level:main"
+run-runner = "project_0.run_level:main"
+
+[build-system]
+requires = ["hatchling>=1.5"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/project_0"]
