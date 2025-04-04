@@ -34,4 +34,7 @@ async def main():
     result= await Runner.run(agent, "What's the capital of pakistan")
     print(result.final_output)
 
-asyncio.run(main())
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
