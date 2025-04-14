@@ -30,6 +30,7 @@ config= RunConfig(
     tracing_disabled=True,
 )
 
+# TEST AGENT
 # agent: Agent = Agent(
 #     name="Assistant",
 #     instructions="You are my Friend.",

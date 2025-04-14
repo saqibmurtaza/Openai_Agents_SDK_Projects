@@ -1,5 +1,5 @@
 from agents import function_tool
-from typing import List, Dict, Optional, Annotated
+from typing import List, Dict, Annotated
 import os, json, gspread
 
 # Get the project root directory
