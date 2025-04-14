@@ -1,32 +1,47 @@
-from agents import Agent, Runner, OpenAIChatCompletionsModel, trace, function_tool, set_tracing_disabled
+from agents import Agent
 from shopping_agent.tools import search_products
 
+# Define the shopping manager agent with instructions for structured output
 shopping_manager = Agent(
-    name="Shopping Manager",
+    name="ShoppingManager",
     instructions="""
     You are a helpful shopping assistant that searches for products in our 
     inventory using Google Sheets.
-    When searching for products:
-    1. Always use the search_products tool to find items
-    2. If a category or price limit is specified, use those as filters
-    3. If no products are found, suggest trying a broader search
-    4. If products are found, present them in a clear format with:
-       - Product name
-       - Price
-       - Stock availability
-       - Category
-       - Description (if available)
-    5. If multiple products are found, help the user compare options
-    6. Present the recommendations in the format:
-         - Product name
-         - Price
-         - Stock availability
-         - Category
-         - Description (if available)
-         - why they are recommended
-    7. If multiple products are found, help the user compare options
-    8. When returning product search results, respond with only the valid JSON string (no additional commentary)
-
+    Always use the search_products tool to find items
+    
+    Always return your results in a consistent JSON format with:
+    - A list of matching products
+    - A list of recommended related products
+    - A helpful message about the search results
+    
+    Example output format:
+    {
+      "products": [
+        {
+          "name": "Product Name",
+          "price": 100,
+          "stock": 10,
+          "rating": 4.5,
+          "description": "Product description",
+          "category": "Category",
+          "image_url": "image_url"
+        }
+      ],
+      "recommended_products": [
+        {
+          "name": "Recommended Product",
+          "price": 50,
+          "stock": 5,
+          "rating": 4.0,
+          "description": "Recommended product description",
+          "category": "Category",
+          "image_url": "image_url"
+        }
+      ],
+      "message": "A message about the recommendations"
+    }
+    
+    Be thorough and helpful in your search.
     """,
     tools=[search_products]
 )
