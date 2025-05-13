@@ -3,7 +3,9 @@ from typing import List, Dict, Annotated
 import os, json, gspread
 
 # Get the project root directory
-CREDENTIALS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../null"))
+
+CREDENTIALS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../gc.json"))
+
 
 @function_tool
 async def search_products(

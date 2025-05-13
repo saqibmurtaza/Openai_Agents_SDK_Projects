@@ -22,7 +22,7 @@ wheels/
 .venv
 
 .qodo
-null
+.env
 __pycache__/
 lib/
 .DS_Store

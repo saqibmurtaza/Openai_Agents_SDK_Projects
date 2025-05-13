@@ -347,9 +347,15 @@
 #             # Set up Google Sheets Credentials
 #             # Try multiple possible locations for the credentials file
 #             possible_paths = [
+<<<<<<< HEAD
 #                 os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "null")),
 #                 os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "null")),
 #                 os.path.abspath(os.path.join(os.path.dirname(__file__), "null"))
+=======
+#                 os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "gc.json")),
+#                 os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "gc.json")),
+#                 os.path.abspath(os.path.join(os.path.dirname(__file__), "gc.json"))
+>>>>>>> a754d619dbfd15a47fd26f2daf53bc3fc597773e
 #             ]
             
 #             creds_path = None

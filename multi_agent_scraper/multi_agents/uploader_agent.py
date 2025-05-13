@@ -5,7 +5,9 @@ from google.oauth2.service_account import Credentials
 import os
 
 def run_uploader_agent(products, sheet_id, sheet_name):
-    creds_path = os.path.join(os.getcwd(), "null")
+
+    creds_path = os.path.join(os.getcwd(), "gc.json")
+
     scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
     credentials = Credentials.from_service_account_file(creds_path, scopes=scope)
     client = gspread.authorize(credentials)
@@ -29,7 +31,7 @@ def run_uploader_agent(products, sheet_id, sheet_name):
 # import re
 # import gspread
 # from oauth2client.service_account import ServiceAccountCredentials
-# GOOGLE_CREDENTIALS_FILE =  os.path.join(os.getcwd(), "null") 
+# GOOGLE_CREDENTIALS_FILE =  os.path.join(os.getcwd(), "gc.json") 
 
 # # Google Sheets setup (make sure your credentials JSON file is correct)
 # SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]

@@ -14,7 +14,7 @@
 # # CONFIGURATION
 # SHOPIFY_COLLECTION_URL = "https://maguireshoes.com/collections/sneakers"
 # GOOGLE_SHEET_NAME = "Shopify Products"
-# GOOGLE_CREDENTIALS_FILE =  os.path.join(os.getcwd(), "null")  # Replace with your actual JSON key file
+# GOOGLE_CREDENTIALS_FILE =  os.path.join(os.getcwd(), "gc.json")  # Replace with your actual JSON key file
 
 # # STEP 1: Fetch products from Shopify JSON endpoint
 # def fetch_products_from_collection(collection_url):
@@ -98,7 +98,7 @@ import gspread
 from bs4 import BeautifulSoup
 
 
-GOOGLE_CREDENTIALS_FILE = os.path.join(os.getcwd(), "null")
+GOOGLE_CREDENTIALS_FILE = os.path.join(os.getcwd(), "gc.json")
 
 # Authenticate with Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]

@@ -7,9 +7,9 @@ from shopping_agent.config_agents import config
 from shopping_agent.shopping_agents import shopping_manager
 
 # Print expected path for confirmation  
-print("Expected null path:", os.path.abspath("null"))  
-GC_JSON_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../null"))  
-print("Absolute path to null:", GC_JSON_PATH)  
+print("Expected gc.json path:", os.path.abspath("gc.json"))  
+GC_JSON_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../gc.json"))  
+print("Absolute path to gc.json:", GC_JSON_PATH)  
 
 # Attempt to connect to Google Sheets  
 gc = gspread.service_account(GC_JSON_PATH)  

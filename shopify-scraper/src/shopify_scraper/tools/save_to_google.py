@@ -8,7 +8,7 @@
 # import logging
 
 
-# GOOGLE_CREDENTIALS_FILE = os.path.join(os.getcwd(), "null")
+# GOOGLE_CREDENTIALS_FILE = os.path.join(os.getcwd(), "gc.json")
 
 # # Authenticate with Google Sheets
 # scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -86,7 +86,7 @@ from gspread.utils import extract_id_from_url
 from urllib.parse import urlparse, unquote # Import for URL parsing
 from google.oauth2.service_account import Credentials
 
-GOOGLE_CREDENTIALS_FILE = os.path.join(os.getcwd(), "null")
+GOOGLE_CREDENTIALS_FILE = os.path.join(os.getcwd(), "gc.json")
 
 # Authenticate with Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]

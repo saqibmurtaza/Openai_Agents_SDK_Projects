@@ -10,7 +10,9 @@ gc_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
 if gc_json:
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
         f.write(gc_json)
-        osnulliron["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
+
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
+
 
 # Add 'src' to the path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))

@@ -12,7 +12,7 @@ from tools.save_to_google import save_to_sheet # Import only the function
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- gspread Authentication Setup ---
-GOOGLE_CREDENTIALS_FILE = os.path.join(os.getcwd(), "null")
+GOOGLE_CREDENTIALS_FILE = os.path.join(os.getcwd(), "gc.json")
 
 try:
     test_client = gspread.service_account(filename=GOOGLE_CREDENTIALS_FILE)

@@ -9,7 +9,7 @@ def test_google_sheets_access():
     """Test function to verify Google Sheets access"""
     try:
         # Path to credentials file
-        creds_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "null"))
+        creds_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "gc.json"))
         print(f"Looking for credentials at: {creds_path}")
         
         if not os.path.exists(creds_path):

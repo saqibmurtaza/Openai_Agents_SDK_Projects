@@ -172,7 +172,7 @@ def scrape_products(url: str, sheet_id: str = None, sheet_name: str = None) -> d
     
     try:
         # Set up Google Sheets Credentials
-        creds_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "null"))
+        creds_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "gc.json"))
         
         if os.path.exists(creds_path):
             # Define the scope

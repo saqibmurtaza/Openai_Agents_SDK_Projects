@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os, asyncio
 
 load_dotenv()
-# Load environment variables from null file
+# Load environment variables from .env file
 BASE_URL= os.getenv("BASE_URL", "")
 API_KEY= os.getenv("API_KEY") or ""
 MODEL_NAME= os.getenv("MODEL_NAME", "gemini-1.5-flash")
