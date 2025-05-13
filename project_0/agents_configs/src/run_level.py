@@ -11,9 +11,6 @@ load_dotenv()
 base_url= os.getenv("BASE_URL")
 api_key= os.getenv("API_KEY")
 model_name= os.getenv("MODEL_NAME")
-# base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-# api_key = "AIzaSyDXZrZMgjF826B3YfwdNCN_VcnE2C45ME8"
-# model_name = "gemini-1.5-flash"
 
 print("BASE_URL:", os.getenv("BASE_URL"))
 print("API_KEY:", os.getenv("API_KEY"))
