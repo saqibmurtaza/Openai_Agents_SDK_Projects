@@ -1,0 +1,16 @@
+.qodo
+.env
+__pycache__/
+lib/
+.DS_Store
+.qodo
+gc.json
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+

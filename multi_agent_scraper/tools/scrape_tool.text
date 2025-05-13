@@ -1,0 +1,405 @@
+# from bs4 import BeautifulSoup
+# import requests, re, os, gspread, json, time
+# from agents import function_tool
+# from google.oauth2.service_account import Credentials
+# from urllib.parse import urlparse
+
+# def extract_artemest_products(html):
+#     """
+#     Specialized extractor for Artemest website that directly targets their DOM structure.
+#     """
+#     soup = BeautifulSoup(html, "html.parser")
+#     products = []
+    
+#     # Artemest loads products dynamically with JavaScript, so we need to look for specific patterns
+    
+#     # Try to find product grid items
+#     product_cards = soup.select("[data-testid='product-card'], .product-card, [class*='ProductCard']")
+    
+#     # If we can't find product cards with those selectors, try more generic approaches
+#     if not product_cards:
+#         # Look for any div that might be a product card
+#         for div in soup.find_all("div"):
+#             # Check if it has both a product name and price
+#             div_text = div.get_text(" ", strip=True)
+#             has_price = bool(re.search(r'USD\s*[\d,]+', div_text))
+#             has_shipping = "Ships in" in div_text
+            
+#             # If it has price and shipping info, it's likely a product card
+#             if has_price and has_shipping and len(div_text) > 50:
+#                 product_cards.append(div)
+    
+#     print(f"Found {len(product_cards)} potential product cards")
+    
+#     for card in product_cards:
+#         # Skip "More like this" cards
+#         card_text = card.get_text(" ", strip=True)
+#         if "More like this" in card_text:
+#             continue
+        
+#         # Extract product name
+#         name = ""
+#         name_elem = card.select_one("h3, h2, [class*='name'], [class*='title']")
+#         if name_elem:
+#             name = name_elem.get_text(strip=True)
+        
+#         # If no name element found, try to extract from text
+#         if not name:
+#             # Look for text before "USD" or "Ships in"
+#             if "USD" in card_text:
+#                 name_part = card_text.split("USD")[0].strip()
+#                 if name_part:
+#                     name = name_part
+#             elif "Ships in" in card_text:
+#                 name_part = card_text.split("Ships in")[0].strip()
+#                 if name_part:
+#                     name = name_part
+        
+#         # Extract price
+#         price = ""
+#         price_match = re.search(r'USD\s*[\d,]+', card_text)
+#         if price_match:
+#             price = price_match.group(0)
+        
+#         # Extract shipping info
+#         shipping = ""
+#         shipping_match = re.search(r'Ships in \d+-\d+ weeks', card_text)
+#         if shipping_match:
+#             shipping = shipping_match.group(0)
+        
+#         # Extract brand/designer
+#         brand = ""
+#         # Try to find brand before the product name
+#         if name and name in card_text:
+#             text_before_name = card_text.split(name)[0].strip()
+#             if text_before_name and len(text_before_name) < 50:
+#                 brand = text_before_name
+        
+#         # Compile description
+#         description = ""
+#         if brand:
+#             description += brand + " - "
+#         if shipping:
+#             description += shipping
+        
+#         # Only add if we have both name and price
+#         if name and price:
+#             products.append({
+#                 "name": name,
+#                 "price": price,
+#                 "description": description
+#             })
+    
+#     # If we still don't have products, try a more aggressive approach
+#     if not products:
+#         print("Using aggressive extraction approach")
+#         # Look for any text that matches the pattern of a product listing
+#         product_pattern = re.compile(r'([^\n.]+)[\s\n]+(USD\s*[\d,]+)[\s\n]+(Ships in \d+-\d+ weeks)', re.DOTALL)
+#         matches = product_pattern.findall(html)
+        
+#         for name, price, shipping in matches:
+#             name = name.strip()
+#             price = price.strip()
+#             shipping = shipping.strip()
+            
+#             # Skip "More like this"
+#             if "More like this" in name:
+#                 continue
+                
+#             products.append({
+#                 "name": name,
+#                 "price": price,
+#                 "description": shipping
+#             })
+    
+#     return products
+
+# def scrape_page(url):
+#     """
+#     Scrape a webpage and extract product information.
+    
+#     Args:
+#         url: The URL of the webpage to scrape
+        
+#     Returns:
+#         A list of product dictionaries with name, price, and description
+#     """
+#     try:
+#         # Use a realistic user agent to avoid being blocked
+#         headers = {
+#             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+#             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+#             'Accept-Language': 'en-US,en;q=0.5',
+#             'Connection': 'keep-alive',
+#             'Upgrade-Insecure-Requests': '1',
+#             'Cache-Control': 'max-age=0'
+#         }
+        
+#         # Fetch the page
+#         print(f"Fetching {url}")
+#         response = requests.get(url, headers=headers)
+#         response.raise_for_status()
+#         html = response.text
+        
+#         # Check if it's an Artemest page
+#         if "artemest.com" in url:
+#             print("Detected Artemest website, using specialized extractor")
+#             products = extract_artemest_products(html)
+            
+#             # If no products found, the page might be using JavaScript to load content
+#             if not products:
+#                 print("No products found with HTML parsing. Artemest likely uses JavaScript to load products.")
+#                 print("Trying to extract data from embedded JSON...")
+                
+#                 # Look for JSON data in script tags
+#                 soup = BeautifulSoup(html, "html.parser")
+#                 json_data = None
+                
+#                 # Try to find product data in script tags
+#                 for script in soup.find_all("script", type="application/json"):
+#                     try:
+#                         data = json.loads(script.string)
+#                         if isinstance(data, dict) and ("products" in data or "items" in data or "results" in data):
+#                             json_data = data
+#                             break
+#                     except:
+#                         pass
+                
+#                 # Try to find product data in script tags with window.__INITIAL_STATE__
+#                 if not json_data:
+#                     for script in soup.find_all("script"):
+#                         if script.string and "window.__INITIAL_STATE__" in script.string:
+#                             try:
+#                                 # Extract the JSON part
+#                                 json_str = script.string.split("window.__INITIAL_STATE__ = ")[1].split(";</script>")[0]
+#                                 data = json.loads(json_str)
+#                                 if isinstance(data, dict):
+#                                     json_data = data
+#                                     break
+#                             except:
+#                                 pass
+                
+#                 # If we found JSON data, extract products
+#                 if json_data:
+#                     print("Found embedded JSON data")
+#                     products = []
+                    
+#                     # Try different possible JSON structures
+#                     product_lists = []
+                    
+#                     # Check for products in various locations
+#                     if "products" in json_data:
+#                         product_lists.append(json_data["products"])
+#                     elif "items" in json_data:
+#                         product_lists.append(json_data["items"])
+#                     elif "results" in json_data:
+#                         product_lists.append(json_data["results"])
+                    
+#                     # Search recursively for product arrays
+#                     def find_product_arrays(obj, path=""):
+#                         if isinstance(obj, dict):
+#                             for key, value in obj.items():
+#                                 if key in ["products", "items", "results"] and isinstance(value, list) and value:
+#                                     product_lists.append(value)
+#                                 find_product_arrays(value, f"{path}.{key}" if path else key)
+#                         elif isinstance(obj, list):
+#                             for i, item in enumerate(obj):
+#                                 find_product_arrays(item, f"{path}[{i}]")
+                    
+#                     find_product_arrays(json_data)
+                    
+#                     # Process each product list
+#                     for product_list in product_lists:
+#                         for item in product_list:
+#                             if not isinstance(item, dict):
+#                                 continue
+                                
+#                             # Extract product details
+#                             name = item.get("name", item.get("title", ""))
+                            
+#                             # Extract price
+#                             price = ""
+#                             price_value = item.get("price", item.get("priceRange", {}).get("minPrice", ""))
+#                             if price_value:
+#                                 if isinstance(price_value, (int, float)):
+#                                     price = f"USD {price_value}"
+#                                 elif isinstance(price_value, str) and price_value.isdigit():
+#                                     price = f"USD {price_value}"
+#                                 else:
+#                                     price = str(price_value)
+                            
+#                             # Extract description or other details
+#                             description = item.get("description", "")
+                            
+#                             # Extract shipping info
+#                             shipping = item.get("shipping", item.get("deliveryTime", ""))
+#                             if shipping and shipping not in description:
+#                                 description = f"{description} - {shipping}" if description else shipping
+                            
+#                             # Extract brand/designer
+#                             brand = item.get("brand", item.get("designer", item.get("maker", "")))
+#                             if brand and brand not in description:
+#                                 description = f"{brand} - {description}" if description else brand
+                            
+#                             # Only add if we have both name and price
+#                             if name and price:
+#                                 products.append({
+#                                     "name": name,
+#                                     "price": price,
+#                                     "description": description
+#                                 })
+                
+#                 # If still no products, try to simulate browser behavior
+#                 if not products:
+#                     print("No products found in embedded JSON. The page might require full browser rendering.")
+#                     print("Consider using a headless browser like Selenium or Playwright for this site.")
+#         else:
+#             # For non-Artemest sites, use a generic approach
+#             soup = BeautifulSoup(html, "html.parser")
+#             products = []
+            
+#             # Look for product cards
+#             product_cards = soup.select(".product-card, .product, .item, [class*='product-card'], [class*='product-item']")
+            
+#             for card in product_cards:
+#                 # Skip "More like this" cards
+#                 card_text = card.get_text(" ", strip=True)
+#                 if "More like this" in card_text:
+#                     continue
+                
+#                 # Extract product name
+#                 name = ""
+#                 name_elem = card.select_one("h2, h3, h4, .product-title, .title, [class*='name'], [class*='title']")
+#                 if name_elem:
+#                     name = name_elem.get_text(strip=True)
+                
+#                 # Extract price
+#                 price = ""
+#                 price_elem = card.select_one(".price, .product-price, [class*='price']")
+#                 if price_elem:
+#                     price = price_elem.get_text(strip=True)
+#                 else:
+#                     # Try to find price in text
+#                     price_match = re.search(r'(\$|USD)\s*[\d,]+(\.\d{2})?', card_text)
+#                     if price_match:
+#                         price = price_match.group(0)
+                
+#                 # Extract description
+#                 description = card_text
+#                 if name:
+#                     description = description.replace(name, "", 1)
+#                 if price:
+#                     description = description.replace(price, "", 1)
+#                 description = description.strip()
+                
+#                 # Only add if we have both name and price
+#                 if name and price:
+#                     products.append({
+#                         "name": name,
+#                         "price": price,
+#                         "description": description[:100] + "..." if len(description) > 100 else description
+#                     })
+        
+#         print(f"Scraped {len(products)} products from {url}")
+#         return products
+    
+#     except Exception as e:
+#         print(f"Error scraping {url}: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+#         return []
+
+# @function_tool
+# def scrape_products(url: str, sheet_id: str = None, sheet_name: str = None) -> dict:
+#     """
+#     Scrapes product data from the given URL and saves it to Google Sheets.
+    
+#     Args:
+#         url: The URL of the webpage to scrape
+#         sheet_id: The Google Sheet ID where data should be saved
+#         sheet_name: The name of the sheet tab where data should be saved
+        
+#     Returns:
+#         A dictionary with product details and status of the Google Sheets operation
+#     """
+#     # Import here to avoid circular import issues
+#     try:
+#         from config_agent import SHEET_ID as CONFIG_SHEET_ID
+#         from config_agent import SHEET_NAME as CONFIG_SHEET_NAME
+        
+#         # Use provided values or fall back to config values
+#         sheet_id = sheet_id or CONFIG_SHEET_ID
+#         sheet_name = sheet_name or CONFIG_SHEET_NAME
+#     except ImportError:
+#         # If we're not in the web_scraper_agent context, use provided values
+#         pass
+    
+#     print(f"Scraping products from: {url}")
+    
+#     # Use the scrape_page function to get products
+#     products = scrape_page(url)
+    
+#     # Send to Google Sheets if products were found and sheet_id is provided
+#     sheet_status = "No products found to send to Google Sheets"
+    
+#     if products and sheet_id:
+#         try:
+#             # Set up Google Sheets Credentials
+#             # Try multiple possible locations for the credentials file
+#             possible_paths = [
+#                 os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "gc.json")),
+#                 os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "gc.json")),
+#                 os.path.abspath(os.path.join(os.path.dirname(__file__), "gc.json"))
+#             ]
+            
+#             creds_path = None
+#             for path in possible_paths:
+#                 if os.path.exists(path):
+#                     creds_path = path
+#                     break
+            
+#             if creds_path:
+#                 # Define the scope
+#                 scope = [
+#                     'https://www.googleapis.com/auth/spreadsheets',
+#                     'https://www.googleapis.com/auth/drive'
+#                 ]
+                
+#                 # Initialize credentials and client
+#                 credentials = Credentials.from_service_account_file(creds_path, scopes=scope)
+#                 client = gspread.authorize(credentials)
+                
+#                 # Open the spreadsheet
+#                 spreadsheet = client.open_by_key(sheet_id)
+                
+#                 # Get or create the worksheet
+#                 try:
+#                     sheet = spreadsheet.worksheet(sheet_name)
+#                 except:
+#                     sheet = spreadsheet.add_worksheet(title=sheet_name, rows=100, cols=20)
+                
+#                 # Clear existing data
+#                 sheet.clear()
+#                                 # Add headers
+#                 sheet.append_row(["Product Name", "Price", "Description"])
+                
+#                 # Add product data
+#                 for product in products:
+#                     sheet.append_row([
+#                         product["name"], 
+#                         product["price"], 
+#                         product["description"]
+#                     ])
+                
+#                 sheet_status = f"Successfully sent {len(products)} products to Google Sheets"
+#             else:
+#                 sheet_status = f"Google credentials file not found in any of the expected locations"
+#         except Exception as e:
+#             sheet_status = f"Error sending to Google Sheets: {str(e)}"
+    
+#     return {
+#         "products": products,
+#         "count": len(products),
+#         "sheet_status": sheet_status
+#     }
+
