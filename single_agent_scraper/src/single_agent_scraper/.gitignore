@@ -1,15 +1,3 @@
-.qodo
-# Python bytecode
-__pycache__/
-*.pyc
-
-# Virtual environments
-.venv/
-
-# Build artifacts
-dist/
-build/
-*.egg-info/
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -36,5 +24,4 @@ null
 env/
 venv/
 ENV/
-
 
