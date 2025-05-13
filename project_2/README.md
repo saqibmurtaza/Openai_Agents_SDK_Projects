@@ -17,3 +17,26 @@ UV COMMANDS:
 5: uv clean (clean the cache)
 6: uv pip uninstall <package name>
 7: uv pip show <package name>
+
+# Shopping Assistant
+
+A Chainlit-based shopping assistant that helps users find products from attached inventory and manage their shopping cart.
+
+## Features
+
+- Search for products
+- Refine search results
+- Add items to cart
+- View cart
+- Checkout
+
+## Usage
+
+Type your product search query to get started.
+
+Commands:
+- I am looking for bed or tables or chairs
+- `refine [query]` - Refine your search
+- `add [product name]` - Add a product to your cart
+- `view cart` - View your shopping cart
+- `checkout` - Complete your purchase

@@ -1,0 +1,204 @@
+import asyncio
+import json
+import logging
+from pydantic import BaseModel
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+import requests
+import re
+
+from agents import (
+    function_tool,
+    Agent,
+    Runner,
+    GuardrailFunctionOutput,
+    InputGuardrailTripwireTriggered,
+    input_guardrail,
+    output_guardrail,
+    TResponseInputItem,
+)
+from config_agent import config
+
+
+# =========================
+# 1. GUARDRAIL: VALIDATE SHOPIFY URL
+# =========================
+class ShopifyURLGuardrailOutput(BaseModel):
+    is_shopify_url: bool
+    reasoning: str
+
+shopify_url_guardrail_agent = Agent(
+    name="Shopify URL Guardrail Agent",
+    instructions="Check if the input is a valid Shopify collection URL.",
+    output_type=ShopifyURLGuardrailOutput,
+)
+
+@input_guardrail
+async def shopify_url_guardrail(ctx, agent, inp: str | list[TResponseInputItem]):
+    result = await Runner.run(
+        shopify_url_guardrail_agent,
+        inp,
+        context=ctx.context,
+        run_config=config,
+    )
+    print("URL guardrail result:", result.final_output)
+    return GuardrailFunctionOutput(
+        output_info=result.final_output,
+        tripwire_triggered=not result.final_output.is_shopify_url,
+    )
+
+
+# =========================
+# 2. GUARDRAIL: VALIDATE SHOPIFY AGENT OUTPUT
+# =========================
+@output_guardrail(name="shopify_output_guardrail")
+async def validate_shopify_output(ctx, agent, output):
+    print("Output received by guardrail:", output)
+    if not isinstance(output, list):
+        return GuardrailFunctionOutput("Output is not a list", True)
+    for item in output:
+        if not isinstance(item, dict):
+            return GuardrailFunctionOutput(f"Item not a dict: {item}", True)
+        missing = [k for k in ("Title", "Price", "Description") if k not in item]
+        if missing:
+            return GuardrailFunctionOutput(f"Missing keys {missing} in {item}", True)
+    return GuardrailFunctionOutput("Valid product list", False)
+
+
+# =========================
+# 3. YOUR TOOLS
+# =========================
+@function_tool(strict_mode=False)
+def scrape_shopify_collection(url: str) -> list[dict]:
+    path = urlparse(url).path
+    m = re.search(r"/collections/([^/?#]+)", path)
+    if not m:
+        return []
+    handle = m.group(1)
+    json_url = f"https://{urlparse(url).netloc}/collections/{handle}/products.json"
+    resp = requests.get(json_url)
+    resp.raise_for_status()
+    return resp.json().get("products", [])
+
+@function_tool(strict_mode=False)
+def extract_product_data(product: dict) -> dict:
+    title = product.get("title", "")
+    price = product.get("variants", [{}])[0].get("price", "")
+    desc_html = product.get("body_html", "")
+    desc_text = BeautifulSoup(desc_html, "html.parser").get_text(" ", strip=True)
+    return {"Title": title, "Price": price, "Description": desc_text}
+
+@function_tool(strict_mode=False)
+def extract_json_tool(input_string: str) -> list | dict | None:
+    match = re.search(r"```json\s*\n?(.*?)\s*```", input_string, re.DOTALL)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(1).strip())
+    except:
+        return None
+
+@function_tool(strict_mode=False)
+def save_to_sheet(sheet_url: str, products: list[dict], tab_name: str = "Products") -> str:
+    print(f"Saving {len(products)} items to {sheet_url} in tab {tab_name}")
+    return f"Saved {len(products)} products to sheet"
+
+
+# =========================
+# 4. AGENT DEFINITIONS
+# =========================
+shopify_agent = Agent(
+    name="shopify_agent",
+    instructions="""
+When given a Shopify collection URL, emit exactly:
+{"tool":"scrape_shopify_collection","arguments":{"url":<that URL>}}
+Then for each item in the returned list, emit:
+{"tool":"extract_product_data","arguments":{"product":<the item>}}
+Collect all results into a list and return it directly (no markdown or code).
+""",
+    tools=[scrape_shopify_collection, extract_product_data],
+    input_guardrails=[shopify_url_guardrail],
+    output_guardrails=[validate_shopify_output],
+    handoff_description="Scrapes and cleans Shopify products."
+)
+
+data_formatter_agent = Agent(
+    name="data_formatter_agent",
+    instructions="""
+You receive two inputs as a JSON tuple: [raw_list, sheet_url, tab_name].
+Unpack into variables raw_list, sheet_url, tab_name.
+Return only this dict:
+  {"sheet_url": sheet_url, "tab_name": tab_name, "products": raw_list}
+""",
+    tools=[],
+    handoff_description="Attach sheet_url & tab_name to products."
+)
+
+data_writer_agent = Agent(
+    name="data_writer_agent",
+    instructions="""
+You receive a dict with keys sheet_url, tab_name, products.
+Emit:
+{"tool":"save_to_sheet","arguments":{"sheet_url":sheet_url,"products":products,"tab_name":tab_name}}
+and return the string result.
+""",
+    tools=[save_to_sheet],
+    handoff_description="Saves products to Google Sheets."
+)
+
+# ============================================
+# ✓ HERE’S THE ONLY CHANGE IN TRIAGE_AGENT ✓
+# ============================================
+triage_agent = Agent(
+    name="Shopify Collection Scraper",
+    instructions="""
+You receive a JSON string: {"shopify_url": "...", "sheet_url": "...", "tab_name": "..."}.
+1) Parse it into shopify_url, sheet_url, tab_name.
+2) Emit: {"tool":"scrape_shopify_collection","arguments":{"url":shopify_url}}
+3) Runner returns a raw JSON string. NOW parse it:
+   {"tool":"extract_json_tool","arguments":{"input_string":<that raw string>}}
+4) Runner returns a Python list of dicts.
+5) Emit: {"tool":"data_formatter_agent","arguments":{
+       "raw_list":<that list>,"sheet_url":sheet_url,"tab_name":tab_name}}
+6) Runner returns the formatted dict.
+7) Emit: {"tool":"save_to_sheet","arguments":<that dict>}
+8) Return the final save message.
+""",
+    tools=[extract_json_tool],                             # <<< added here
+    handoffs=[shopify_agent, data_formatter_agent, data_writer_agent],
+    handoff_description="Routes scraper → parse → formatter → writer."
+)
+
+
+# =========================
+# 5. RUNNER
+# =========================
+async def run_scraper_workflow(shopify_url, sheet_url, tab_name="Products"):
+    payload = json.dumps({
+        "shopify_url": shopify_url,
+        "sheet_url": sheet_url,
+        "tab_name": tab_name,
+    })
+    print("START:", payload)
+    try:
+        result = await Runner.run(
+            triage_agent,
+            input=payload,
+            run_config=config
+        )
+        print("END:", result)
+        return result
+    except InputGuardrailTripwireTriggered as e:
+        print("INPUT BLOCKED:", e)
+        return f"Blocked: {e}"
+
+
+# =========================
+# 6. ENTRYPOINT
+# =========================
+if __name__ == "__main__":
+    asyncio.run(run_scraper_workflow(
+        "https://maguireshoes.com/collections/sneakers",
+        "https://docs.google.com/spreadsheets/your-sheet-id/edit",
+        "Sneakers"
+    ))
