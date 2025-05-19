@@ -1,3 +1,0 @@
-# replacements.txt
-.env==>null
-gc.json==>null
