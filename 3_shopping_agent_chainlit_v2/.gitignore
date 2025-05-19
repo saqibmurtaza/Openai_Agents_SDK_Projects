@@ -13,4 +13,7 @@ null
 env/
 venv/
 ENV/
+gc.json
+new_gc.json
+# Python bytecode
 

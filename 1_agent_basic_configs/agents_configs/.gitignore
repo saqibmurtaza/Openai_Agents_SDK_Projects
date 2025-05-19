@@ -18,16 +18,7 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
-.venv
 
-.qodo
-.env
-__pycache__/
-lib/
-.DS_Store
-.qodo
-null
 __pycache__/
 *.py[cod]
 *$py.class
@@ -37,7 +28,7 @@ env/
 venv/
 ENV/
 
+.env
 gc.json
 new_gc.json
-
 
